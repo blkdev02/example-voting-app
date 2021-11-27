@@ -29,6 +29,7 @@ pipeline {
             }
             when{
               changeset "**/vote/**"
+              branch 'master'
             }
             steps{
                 echo 'Running Unit Tests on vote app'
