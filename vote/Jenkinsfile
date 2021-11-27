@@ -1,14 +1,15 @@
 pipeline {
     
-    agent{
-        docker{
-            image 'python:2.7.16-slim'
-            args '--user root'
-        }
-    }
+    agent none
 
     stages{
         stage('build'){
+            agent{
+                docker{
+                    image 'python:2.7.16-slim'
+                    args '--user root'
+                }
+            }
             when{
               changeset "**/vote/**"
             }
@@ -20,6 +21,12 @@ pipeline {
           }
         }
         stage('test'){
+            agent{
+                docker{
+                    image 'python:2.7.16-slim'
+                    args '--user root'
+                }
+            }
             when{
               changeset "**/vote/**"
             }
@@ -30,7 +37,23 @@ pipeline {
                 }
             }
         }
-    }
+        stage('docker-package'){
+            agent any
+            when{
+              changeset "**/vote/**"
+            }
+            steps{
+                echo 'Packaging vote app with docker'
+                script{
+                  docker.withRegistry('https://registry.hub.docker.com/', 'dockerhub') {
+                    def voteImage = docker.build("davidatsains/vote:v${env.BUILD_ID}", "./vote")
+                    voteImage.push()
+                    voteImage.push("${env.BRANCH_NAME}")
+                  }
+                }
+            }
+        }        
+    }    
     post{
         always{
             echo 'This pipeline run is completed.'
