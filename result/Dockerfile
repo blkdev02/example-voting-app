@@ -1,12 +1,9 @@
-FROM node:8.16.0-alpine
+FROM 
 
 WORKDIR /app 
 
-COPY . . 
+COPY 
 
-RUN npm install  && \ 
-    npm audit fix 
-    
-EXPOSE 4000
+RUN 
 
-CMD npm start 
+CMD 
