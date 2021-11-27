@@ -1,13 +1,14 @@
 pipeline {
     
-    agent{
-        docker{
-            image 'node:8.16.0-alpine'
-        }
-    }
+    agent none
 
     stages{
         stage('build'){
+            agent{
+                docker{
+                    image 'node:8.16.0-alpine'
+                }
+            }
             when{
               changeset "**/result/**"
             }
@@ -19,6 +20,11 @@ pipeline {
           }
         }
         stage('test'){
+            agent{
+                docker{
+                    image 'node:8.16.0-alpine'
+                }
+            }
             when{
               changeset "**/result/**"
             }
@@ -29,6 +35,23 @@ pipeline {
                 }
             }
         }
+        stage('docker-package'){
+            agent any
+            when{
+              changeset "**/result/**"
+              branch 'master'
+            }
+            steps{
+                echo 'Packaging result app with docker'
+                script{
+                  docker.withRegistry('https://registry.hub.docker.com/', 'dockerhub') {
+                    def resultImage = docker.build("davidatsains/result:v${env.BUILD_ID}", "./result")
+                    resultImage.push()
+                    resultImage.push("${env.BRANCH_NAME}")
+                  }
+                }
+            }
+        }        
     }
     post{
         always{
