@@ -1,6 +1,59 @@
 pipeline {
     agent none
     stages{
+        stage('worker-test'){
+            agent {
+                docker{
+                  image 'maven:3.6.1-jdk-8-alpine'
+                  args '-v $HOME/.m2:/root/.m2'
+                }
+            }
+            when{
+              changeset "**/worker/**"
+            }
+            steps{
+                echo 'Running Unit Tests on worker app'
+                dir('worker'){
+                sh 'mvn clean test'
+                }
+            }
+        }
+        stage('worker-package'){
+            agent {
+              docker{
+                image 'maven:3.6.1-jdk-8-alpine'
+                args '-v $HOME/.m2:/root/.m2'
+              }
+            }
+            when{
+              branch 'master'
+              changeset "**/worker/**"
+            }
+            steps{
+                echo 'Packaging worker app'
+               dir('worker'){
+               sh 'mvn package -DskipTests'
+               archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+               } 
+            }
+        }
+        stage('worker-docker-package'){
+            agent any
+            when{
+              changeset "**/worker/**"
+              branch 'master'
+            }
+            steps{
+                echo 'Packaging worker app with docker'
+                script{
+                  docker.withRegistry('https://registry.hub.docker.com/', 'dockerhub') {
+                    def workerImage = docker.build("davidatsains/worker:v${env.BUILD_ID}", "./worker")
+                    workerImage.push()
+                    workerImage.push("${env.BRANCH_NAME}")
+                  }
+                }
+            }
+        }      
         stage('result-build'){
             agent{
                 docker{
@@ -119,61 +172,7 @@ pipeline {
             }
           }
         }
-        stage('worker-test'){
-            agent {
-                docker{
-                  image 'maven:3.6.1-jdk-8-alpine'
-                  args '-v $HOME/.m2:/root/.m2'
-                }
-            }
-            when{
-              changeset "**/worker/**"
-            }
-            steps{
-                echo 'Running Unit Tests on worker app'
-                dir('worker'){
-                sh 'mvn clean test'
-                }
-            }
-        }
-        stage('worker-package'){
-            agent {
-              docker{
-                image 'maven:3.6.1-jdk-8-alpine'
-                args '-v $HOME/.m2:/root/.m2'
-              }
-            }
-            when{
-              branch 'master'
-              changeset "**/worker/**"
-            }
-            steps{
-                echo 'Packaging worker app'
-               dir('worker'){
-               sh 'mvn package -DskipTests'
-               archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
-               } 
-            }
-        }
-        stage('worker-docker-package'){
-            agent any
-            when{
-              changeset "**/worker/**"
-              branch 'master'
-            }
-            steps{
-                echo 'Packaging worker app with docker'
-                script{
-                  docker.withRegistry('https://registry.hub.docker.com/', 'dockerhub') {
-                    def workerImage = docker.build("davidatsains/worker:v${env.BUILD_ID}", "./worker")
-                    workerImage.push()
-                    workerImage.push("${env.BRANCH_NAME}")
-                  }
-                }
-            }
-        }
     }
-
     post{
         always{
             echo 'This pipeline for Instavote run is completed.'
