@@ -2,7 +2,7 @@ pipeline {
   agent none
   stages {
     stage('worker-build') {
-      agent{
+      agent {
         docker {
           image 'maven:3.6.1-jdk-8-alpine'
           args '-v $HOME/.m2:/root/.m2'
@@ -20,8 +20,9 @@ pipeline {
 
       }
     }
+
     stage('worker-test') {
-      agent{
+      agent {
         docker {
           image 'maven:3.6.1-jdk-8-alpine'
           args '-v $HOME/.m2:/root/.m2'
@@ -41,7 +42,7 @@ pipeline {
     }
 
     stage('worker-package') {
-      agent{
+      agent {
         docker {
           image 'maven:3.6.1-jdk-8-alpine'
           args '-v $HOME/.m2:/root/.m2'
@@ -61,9 +62,10 @@ pipeline {
 
       }
     }
+
     stage('worker-docker-package') {
       agent any
-      when{
+      when {
         changeset '**/worker/**'
         branch 'master'
       }
@@ -81,7 +83,7 @@ pipeline {
     }
 
     stage('result-build') {
-      agent{
+      agent {
         docker {
           image 'node:8.16.0-alpine'
         }
@@ -100,7 +102,7 @@ pipeline {
     }
 
     stage('result-test') {
-      agent{
+      agent {
         docker {
           image 'node:8.16.0-alpine'
         }
@@ -138,7 +140,7 @@ pipeline {
     }
 
     stage('vote-build') {
-      agent{
+      agent {
         docker {
           image 'python:2.7.16-slim'
           args '--user root'
@@ -158,7 +160,7 @@ pipeline {
     }
 
     stage('vote-test') {
-      agent{
+      agent {
         docker {
           image 'python:2.7.16-slim'
           args '--user root'
@@ -196,11 +198,14 @@ pipeline {
 
       }
     }
+
     stage('deploy-to-dev') {
+      agent any
       steps {
         sh 'docker-compose up -d'
       }
     }
+
   }
   post {
     always {
