@@ -201,6 +201,10 @@ pipeline {
 
     stage('deploy-to-dev') {
       agent any
+      when {
+        changeset '**/vote/**'
+        branch 'master'
+      }
       steps {
         sh 'docker-compose up -d'
       }
